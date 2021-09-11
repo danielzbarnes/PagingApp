@@ -15,25 +15,25 @@ private const val NETWORK_PAGE_SIZE = 50
 class GithubPagingSource(private val service: GithubService, private val query: String):
     PagingSource<Int, Repo>() {
 
-    // fetches data async to load
+    // fetches data asyncronously
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Repo> {
 
-        val pos = params.key ?: GITHUB_STARTING_PAGE_INDEX // if params.key is null use the starting index
+        // if params.key is null use the starting index
+        val pos = params.key ?: GITHUB_STARTING_PAGE_INDEX 
         val apiQuery = query + IN_QUALIFIER
 
-        return try {
+        return try { // returns the LoadResult
             val response = service.searchRepos(apiQuery, pos, params.loadSize)
             val repos = response.items
             val nextKey = if (repos.isEmpty()) null
                           // prevent requesting duplicate items
                           else pos + (params.loadSize / NETWORK_PAGE_SIZE)
-            LoadResult.Page(data = repos, prevKey = if (pos == GITHUB_STARTING_PAGE_INDEX) null else pos-1,
-                            nextKey = nextKey)
-        } catch(e: IOException) {
-            return LoadResult.Error(e)
-        } catch(e: HttpException){
-            return LoadResult.Error(e)
-        }
+            LoadResult.Page(data = repos,
+                prevKey = if (pos == GITHUB_STARTING_PAGE_INDEX) null else pos-1,
+                nextKey = nextKey)
+
+        } catch(e: IOException) { return LoadResult.Error(e) }
+          catch(e: HttpException){ return LoadResult.Error(e) }
     }
 
     // refresh key is used for refresh calls to PagingSource.load()
